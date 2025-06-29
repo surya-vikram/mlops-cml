@@ -9,38 +9,51 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ${{ github.workspace }}/src
+      # makes absolutely sure telemetry is off even if someone bumps CML later
+      ITERATIVE_DO_NOT_TRACK: 1
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # ─── Code ──────────────────────────────────────────────────────
+      - uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      # ─── Python ───────────────────────────────────────────────────
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Install CML CLI
-        uses: iterative/setup-cml@v2
+      # ─── Node + CML 0.20.5 (GOOD) ─────────────────────────────────
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "18"
 
-      - name: Install dependencies
+      - name: Install CML 0.20.5
+        run: npm install -g @dvcorg/cml@0.20.5
+
+      # ─── Project deps ─────────────────────────────────────────────
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests and generate JUnit XML
+      # ─── Tests ────────────────────────────────────────────────────
+      - name: Run tests and save JUnit XML
         run: |
-          pytest --maxfail=1 --disable-warnings --capture=no --junitxml=test-results.xml
+          pytest --maxfail=1 --disable-warnings --capture=no \
+                 --junitxml=test-results.xml
 
+      # ─── Build report (no quoting surprises) ──────────────────────
       - name: Build Markdown report
         run: |
-          echo "# Test Results" > report.md
-          echo "" >> report.md
-          echo "```xml" >> report.md
-          cat test-results.xml >> report.md
-          echo "```" >> report.md
+          {
+            echo '# Test Results'
+            echo
+            echo '```xml'
+            cat test-results.xml
+            echo '```'
+          } > report.md
 
+      # ─── Publish with CML CLI 0.20.5 ──────────────────────────────
       - name: Publish CML report as PR comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          cml report create report.md
+        run: cml comment create report.md   # ‘comment create’ is equivalent to ‘report create’
