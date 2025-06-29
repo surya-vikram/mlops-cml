@@ -27,14 +27,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run tests
-        run: pytest --maxfail=1 --disable-warnings -q
+      - name: Run tests and generate report.md
+        run: |
+          pytest --maxfail=1 --disable-warnings --capture=no --junitxml=test-results.xml
+          echo "# Test Results" > report.md
+          cat test-results.xml >> report.md
 
-      - name: Generate CML report
-        run: cml run --md report.md -- pytest
-
-      - name: Post CML report as PR comment
+      - name: Publish CML report
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "$(cat report.md)"
+        run: cml report create report.md
