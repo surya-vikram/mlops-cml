@@ -4,56 +4,50 @@ on:
   pull_request:
     branches: [ main ]
 
+# 👇 give the default GITHUB_TOKEN the scopes it needs
+permissions:
+  contents: read           # still needed so the job can fetch code
+  issues: write            # PR comments are Issues comments under the hood
+  pull-requests: write     # good practice – covers reviews, labels, etc.
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ${{ github.workspace }}/src
-      # makes absolutely sure telemetry is off even if someone bumps CML later
-      ITERATIVE_DO_NOT_TRACK: 1
+      ITERATIVE_DO_NOT_TRACK: 1          # disable CML telemetry
 
     steps:
-      # ─── Code ──────────────────────────────────────────────────────
       - uses: actions/checkout@v3
 
-      # ─── Python ───────────────────────────────────────────────────
       - uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
+        with: { python-version: "3.10" }
 
-      # ─── Node + CML 0.20.5 (GOOD) ─────────────────────────────────
       - uses: actions/setup-node@v3
-        with:
-          node-version: "18"
+        with: { node-version: "18" }
 
       - name: Install CML 0.20.5
         run: npm install -g @dvcorg/cml@0.20.5
 
-      # ─── Project deps ─────────────────────────────────────────────
-      - name: Install Python dependencies
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ─── Tests ────────────────────────────────────────────────────
-      - name: Run tests and save JUnit XML
+      - name: Run tests ➜ JUnit
         run: |
           pytest --maxfail=1 --disable-warnings --capture=no \
                  --junitxml=test-results.xml
 
-      # ─── Build report (no quoting surprises) ──────────────────────
       - name: Build Markdown report
         run: |
-          {
-            echo '# Test Results'
+          { echo '# Test Results'
             echo
             echo '```xml'
             cat test-results.xml
-            echo '```'
-          } > report.md
+            echo '```'; } > report.md
 
-      # ─── Publish with CML CLI 0.20.5 ──────────────────────────────
-      - name: Publish CML report as PR comment
+      - name: Publish report as PR comment
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: cml comment create report.md   # ‘comment create’ is equivalent to ‘report create’
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # CML looks for REPO_TOKEN first
+        run: cml comment create report.md
