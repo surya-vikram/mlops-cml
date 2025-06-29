@@ -8,7 +8,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: src
+      PYTHONPATH: ${{ github.workspace }}/src
 
     steps:
       - name: Checkout code
@@ -20,7 +20,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install CML CLI
-        uses: iterative/setup-cml@v2    # installs `cml` on the runner
+        uses: iterative/setup-cml@v2
 
       - name: Install dependencies
         run: |
@@ -33,7 +33,7 @@ jobs:
       - name: Generate CML report
         run: cml run --md report.md -- pytest
 
-      - name: Comment CML report on PR
+      - name: Post CML report as PR comment
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
