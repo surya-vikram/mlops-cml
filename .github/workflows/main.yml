@@ -1,8 +1,6 @@
 name: CI Pipeline
 
 on:
-  push:
-    branches: [ dev ]
   pull_request:
     branches: [ main ]
 
@@ -20,7 +18,7 @@ jobs:
           python-version: '3.9'
 
       - name: Install CML CLI
-        uses: iterative/setup-cml@v2    # installs the real CML binaries :contentReference[oaicite:0]{index=0}
+        uses: iterative/setup-cml@v2    # ← installs `cml` on the runner
 
       - name: Install dependencies
         run: |
@@ -33,9 +31,8 @@ jobs:
       - name: Generate CML report
         run: cml run --md report.md -- pytest
 
-      - name: Comment CML report on PR
-        if: github.event_name == 'pull_request'
+      - name: Post CML report as PR comment
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body "$(cat report.md)"
