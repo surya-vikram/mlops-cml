@@ -13,7 +13,7 @@ y = df['species']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # 3. Train for 200 iterations and merge
-model = LogisticRegression(max_iter=200)
+model = LogisticRegression(max_iter=180)
 model.fit(X_train, y_train)
 
 # 4. Save
